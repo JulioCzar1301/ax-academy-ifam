@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.model_selection import train_test_split
+from model import build_model
 
 st.set_page_config(
     page_title="Sistema de Predição ML",
@@ -32,42 +34,27 @@ def carregar_dataset():
     return df
 
 
-def executar_modelo_simulado(df):
-    """
-    FUTURAMENTE:
-        - Separar X e y
-        - Treinar modelo
-        - Realizar previsões
+def executar_modelo(df, percentual_treino):
+    features = [c for c in df.columns if c != "valor_real"]
+    X = df[features]
+    y = df["valor_real"]
 
-    Atualmente gera previsões fictícias.
-    """
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, train_size=percentual_treino / 100, random_state=42
+    )
 
-    y_real = df["valor_real"]
-
-    ruido = np.random.normal(0, 200, len(y_real))
-
-    y_previsto = y_real + ruido
+    model = build_model()
+    model.fit(X_train, y_train)
+    y_previsto = model.predict(X_test)
 
     resultado = pd.DataFrame({
-        "Real": y_real,
+        "Real": y_test.values,
         "Previsto": y_previsto
     })
+    resultado["Erro"] = abs(resultado["Real"] - resultado["Previsto"])
 
-    resultado["Erro"] = abs(
-        resultado["Real"] - resultado["Previsto"]
-    )
-
-    r2 = r2_score(
-        resultado["Real"],
-        resultado["Previsto"]
-    )
-
-    rmse = np.sqrt(
-        mean_squared_error(
-            resultado["Real"],
-            resultado["Previsto"]
-        )
-    )
+    r2 = r2_score(resultado["Real"], resultado["Previsto"])
+    rmse = np.sqrt(mean_squared_error(resultado["Real"], resultado["Previsto"]))
 
     return resultado, r2, rmse
 
@@ -129,17 +116,13 @@ with aba3:
 
     modelo = st.selectbox(
         "Modelo",
-        [
-            "Random Forest",
-            "Regressão Linear",
-            "Decision Tree",
-            "XGBoost"
-        ]
+        ["Ensemble Learning"]
     )
 
     st.info(
         f"Modelo selecionado: {modelo}\n\n"
-        f"Treinamento: {percentual}%"
+        f"Treinamento: {percentual}%\n\n"
+        "Composto por: ExtraTreesRegressor + GradientBoostingRegressor + RandomForestRegressor"
     )
 
 with aba4:
@@ -151,7 +134,7 @@ with aba4:
         use_container_width=True
     ):
 
-        resultado, r2, rmse = executar_modelo_simulado(df)
+        resultado, r2, rmse = executar_modelo(df, percentual)
 
         st.session_state["resultado"] = resultado
         st.session_state["r2"] = r2
