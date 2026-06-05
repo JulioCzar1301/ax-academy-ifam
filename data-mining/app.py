@@ -118,6 +118,7 @@ with aba3:
         "Modelo",
         ["Ensemble Learning"]
     )
+    
 
     st.info(
         f"Modelo selecionado: {modelo}\n\n"
